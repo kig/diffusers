@@ -132,6 +132,11 @@ class Encoder(nn.Module):
 
     def set_use_memory_efficient_attention_xformers(self, use_memory_efficient_attention_xformers:bool):
         self.mid_block.set_use_memory_efficient_attention_xformers(use_memory_efficient_attention_xformers)
+        if not self.downsample_on_cpu:
+            for block in self.down_blocks:
+                if hasattr(block, "attentions") and block.attentions is not None:
+                    block.set_use_memory_efficient_attention_xformers(use_memory_efficient_attention_xformers)
+
 
     def enable_downsample_on_cpu(self):
         self.downsample_on_cpu = True
@@ -142,11 +147,20 @@ class Encoder(nn.Module):
         self.conv_in = self.conv_in.to('cpu').to(torch.float)
         self.down_blocks = self.down_blocks.to('cpu').to(torch.float)
 
+        for block in self.down_blocks:
+            if hasattr(block, "attentions") and block.attentions is not None:
+                block.set_use_memory_efficient_attention_xformers(False)
+
     def disable_downsample_on_cpu(self):
         self.downsample_on_cpu = False
 
         self.conv_in = self.conv_in.to(self._original_device).to(self._original_dtype)
         self.down_blocks = self.down_blocks.to(self._original_device).to(self._original_dtype)
+
+        if len(self.mid_block.attentions) > 0:
+            for block in self.down_blocks:
+                if hasattr(block, "attentions") and block.attentions is not None:
+                    block.set_use_memory_efficient_attention_xformers(self.mid_block.attentions[0]._use_memory_efficient_attention_xformers)
 
     def forward(self, sample):
         dtype = sample.dtype
@@ -243,6 +257,10 @@ class Decoder(nn.Module):
 
     def set_use_memory_efficient_attention_xformers(self, use_memory_efficient_attention_xformers:bool):
         self.mid_block.set_use_memory_efficient_attention_xformers(use_memory_efficient_attention_xformers)
+        if not self.upsample_on_cpu:
+            for block in self.up_blocks:
+                if hasattr(block, "attentions") and block.attentions is not None:
+                    block.set_use_memory_efficient_attention_xformers(use_memory_efficient_attention_xformers)
 
     def enable_upsample_on_cpu(self):
         self.upsample_on_cpu = True
@@ -255,6 +273,10 @@ class Decoder(nn.Module):
         self.conv_act = self.conv_act.to('cpu').to(torch.float)
         self.conv_out = self.conv_out.to('cpu').to(torch.float)
 
+        for block in self.up_blocks:
+            if hasattr(block, "attentions") and block.attentions is not None:
+                block.set_use_memory_efficient_attention_xformers(False)
+
     def disable_upsample_on_cpu(self):
         self.upsample_on_cpu = False
 
@@ -262,6 +284,11 @@ class Decoder(nn.Module):
         self.conv_norm_out = self.conv_norm_out.to(self._original_device).to(self._original_dtype)
         self.conv_act = self.conv_act.to(self._original_device).to(self._original_dtype)
         self.conv_out = self.conv_out.to(self._original_device).to(self._original_dtype)
+
+        if len(self.mid_block.attentions) > 0:
+            for block in self.up_blocks:
+                if hasattr(block, "attentions") and block.attentions is not None:
+                    block.set_use_memory_efficient_attention_xformers(self.mid_block.attentions[0]._use_memory_efficient_attention_xformers)
 
     def forward(self, sample):
         dtype = sample.dtype
