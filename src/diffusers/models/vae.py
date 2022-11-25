@@ -125,13 +125,44 @@ class Encoder(nn.Module):
         conv_out_channels = 2 * out_channels if double_z else out_channels
         self.conv_out = nn.Conv2d(block_out_channels[-1], conv_out_channels, 3, padding=1)
 
-    def forward(self, x):
-        sample = x
+        self.downsample_on_cpu = False
+
+        self._original_device = self.up_blocks.device
+        self._original_dtype = self.up_blocks.dtype
+
+    def set_use_memory_efficient_attention_xformers(self, use_memory_efficient_attention_xformers:bool):
+        self.mid_block.set_use_memory_efficient_attention_xformers(use_memory_efficient_attention_xformers)
+
+    def enable_downsample_on_cpu(self):
+        self.downsample_on_cpu = True
+
+        self._original_device = self.down_blocks.device
+        self._original_dtype = self.up_blocks.dtype
+
+        self.conv_in = self.conv_in.to('cpu').to(torch.float)
+        self.down_blocks = self.down_blocks.to('cpu').to(torch.float)
+
+    def disable_downsample_on_cpu(self):
+        self.downsample_on_cpu = False
+
+        self.conv_in = self.conv_in.to(self._original_device).to(self._original_dtype)
+        self.down_blocks = self.down_blocks.to(self._original_device).to(self._original_dtype)
+
+    def forward(self, sample):
+        dtype = sample.dtype
+        device = sample.device
+
+        if self.downsample_on_cpu:
+            sample = sample.to('cpu').to(torch.float)
+
         sample = self.conv_in(sample)
 
         # down
         for down_block in self.down_blocks:
             sample = down_block(sample)
+
+        if self.downsample_on_cpu:
+            sample = sample.to(dtype).to(device)
 
         # middle
         sample = self.mid_block(sample)
@@ -205,12 +236,43 @@ class Decoder(nn.Module):
         self.conv_act = nn.SiLU()
         self.conv_out = nn.Conv2d(block_out_channels[0], out_channels, 3, padding=1)
 
-    def forward(self, z):
-        sample = z
+        self.upsample_on_cpu = False
+
+        self._original_device = self.up_blocks.device
+        self._original_dtype = self.up_blocks.dtype
+
+    def set_use_memory_efficient_attention_xformers(self, use_memory_efficient_attention_xformers:bool):
+        self.mid_block.set_use_memory_efficient_attention_xformers(use_memory_efficient_attention_xformers)
+
+    def enable_upsample_on_cpu(self):
+        self.upsample_on_cpu = True
+
+        self._original_device = self.up_blocks.device
+        self._original_dtype = self.up_blocks.dtype
+
+        self.up_blocks = self.up_blocks.to('cpu').to(torch.float)
+        self.conv_norm_out = self.conv_norm_out.to('cpu').to(torch.float)
+        self.conv_act = self.conv_act.to('cpu').to(torch.float)
+        self.conv_out = self.conv_out.to('cpu').to(torch.float)
+
+    def disable_upsample_on_cpu(self):
+        self.upsample_on_cpu = False
+
+        self.up_blocks = self.up_blocks.to(self._original_device).to(self._original_dtype)
+        self.conv_norm_out = self.conv_norm_out.to(self._original_device).to(self._original_dtype)
+        self.conv_act = self.conv_act.to(self._original_device).to(self._original_dtype)
+        self.conv_out = self.conv_out.to(self._original_device).to(self._original_dtype)
+
+    def forward(self, sample):
+        dtype = sample.dtype
+        device = sample.device
         sample = self.conv_in(sample)
 
         # middle
         sample = self.mid_block(sample)
+
+        if self.upsample_on_cpu:
+            sample = sample.to('cpu').to(torch.float)
 
         # up
         for up_block in self.up_blocks:
@@ -220,6 +282,9 @@ class Decoder(nn.Module):
         sample = self.conv_norm_out(sample)
         sample = self.conv_act(sample)
         sample = self.conv_out(sample)
+
+        if self.upsample_on_cpu:
+            sample = sample.to(dtype).to(device)
 
         return sample
 
@@ -565,6 +630,10 @@ class AutoencoderKL(ModelMixin, ConfigMixin):
 
         self.quant_conv = torch.nn.Conv2d(2 * latent_channels, 2 * latent_channels, 1)
         self.post_quant_conv = torch.nn.Conv2d(latent_channels, latent_channels, 1)
+
+    def set_use_memory_efficient_attention_xformers(self, use_memory_efficient_attention_xformers: bool):
+        self.decoder.set_use_memory_efficient_attention_xformers(use_memory_efficient_attention_xformers)
+        self.encoder.set_use_memory_efficient_attention_xformers(use_memory_efficient_attention_xformers)
 
     def encode(self, x: torch.FloatTensor, return_dict: bool = True) -> AutoencoderKLOutput:
         h = self.encoder(x)
