@@ -127,8 +127,8 @@ class Encoder(nn.Module):
 
         self.downsample_on_cpu = False
 
-        self._original_device = self.down_blocks.device
-        self._original_dtype = self.down_blocks.dtype
+        self._original_device = self.conv_in.weight.device
+        self._original_dtype = self.conv_in.weight.dtype
 
     def set_use_memory_efficient_attention_xformers(self, use_memory_efficient_attention_xformers:bool):
         self.mid_block.set_use_memory_efficient_attention_xformers(use_memory_efficient_attention_xformers)
@@ -141,8 +141,8 @@ class Encoder(nn.Module):
     def enable_downsample_on_cpu(self):
         self.downsample_on_cpu = True
 
-        self._original_device = self.down_blocks.device
-        self._original_dtype = self.down_blocks.dtype
+        self._original_device = self.conv_in.weight.device
+        self._original_dtype = self.conv_in.weight.dtype
 
         self.conv_in = self.conv_in.to('cpu').to(torch.float)
         self.down_blocks = self.down_blocks.to('cpu').to(torch.float)
@@ -252,8 +252,8 @@ class Decoder(nn.Module):
 
         self.upsample_on_cpu = False
 
-        self._original_device = self.up_blocks.device
-        self._original_dtype = self.up_blocks.dtype
+        self._original_device = self.conv_in.weight.device
+        self._original_dtype = self.conv_in.weight.dtype
 
     def set_use_memory_efficient_attention_xformers(self, use_memory_efficient_attention_xformers:bool):
         self.mid_block.set_use_memory_efficient_attention_xformers(use_memory_efficient_attention_xformers)
@@ -265,8 +265,8 @@ class Decoder(nn.Module):
     def enable_upsample_on_cpu(self):
         self.upsample_on_cpu = True
 
-        self._original_device = self.up_blocks.device
-        self._original_dtype = self.up_blocks.dtype
+        self._original_device = self.conv_in.weight.device
+        self._original_dtype = self.conv_in.weight.dtype
 
         self.up_blocks = self.up_blocks.to('cpu').to(torch.float)
         self.conv_norm_out = self.conv_norm_out.to('cpu').to(torch.float)
