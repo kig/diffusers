@@ -127,8 +127,8 @@ class Encoder(nn.Module):
 
         self.downsample_on_cpu = False
 
-        self._original_device = self.up_blocks.device
-        self._original_dtype = self.up_blocks.dtype
+        self._original_device = self.down_blocks.device
+        self._original_dtype = self.down_blocks.dtype
 
     def set_use_memory_efficient_attention_xformers(self, use_memory_efficient_attention_xformers:bool):
         self.mid_block.set_use_memory_efficient_attention_xformers(use_memory_efficient_attention_xformers)
@@ -142,7 +142,7 @@ class Encoder(nn.Module):
         self.downsample_on_cpu = True
 
         self._original_device = self.down_blocks.device
-        self._original_dtype = self.up_blocks.dtype
+        self._original_dtype = self.down_blocks.dtype
 
         self.conv_in = self.conv_in.to('cpu').to(torch.float)
         self.down_blocks = self.down_blocks.to('cpu').to(torch.float)
