@@ -127,8 +127,8 @@ class Encoder(nn.Module):
 
         self.downsample_on_cpu = False
 
-        self._original_device = self.conv_in.weight.device
-        self._original_dtype = self.conv_in.weight.dtype
+        self._original_device = 'cuda'
+        self._original_dtype = torch.float16
 
         self.on_progress = None
 
@@ -175,7 +175,7 @@ class Encoder(nn.Module):
         device = sample.device
 
         step = 0
-        steps = 3 + len(self.up_blocks)
+        steps = 3 + len(self.down_blocks)
 
         if self.on_progress:
             self.on_progress(step/steps)
@@ -282,8 +282,8 @@ class Decoder(nn.Module):
 
         self.upsample_on_cpu = False
 
-        self._original_device = self.conv_in.weight.device
-        self._original_dtype = self.conv_in.weight.dtype
+        self._original_device = 'cuda'
+        self._original_dtype = torch.float16
 
         self.on_progress = None
 
@@ -299,9 +299,6 @@ class Decoder(nn.Module):
             return
 
         self.upsample_on_cpu = True
-
-        self._original_device = self.conv_in.weight.device
-        self._original_dtype = self.conv_in.weight.dtype
 
         self.up_blocks = self.up_blocks.to('cpu').to(torch.float)
         self.conv_norm_out = self.conv_norm_out.to('cpu').to(torch.float)
