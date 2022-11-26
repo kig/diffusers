@@ -130,6 +130,8 @@ class Encoder(nn.Module):
         self._original_device = self.conv_in.weight.device
         self._original_dtype = self.conv_in.weight.dtype
 
+        self.on_progress = None
+
     def set_use_memory_efficient_attention_xformers(self, use_memory_efficient_attention_xformers:bool):
         self.mid_block.set_use_memory_efficient_attention_xformers(use_memory_efficient_attention_xformers)
         if not self.downsample_on_cpu:
@@ -166,14 +168,28 @@ class Encoder(nn.Module):
         dtype = sample.dtype
         device = sample.device
 
+        step = 0
+        steps = 3 + len(self.up_blocks)
+
+        if self.on_progress:
+            self.on_progress(step/steps)
+            step += 1
+
         if self.downsample_on_cpu:
             sample = sample.to('cpu').to(torch.float)
 
         sample = self.conv_in(sample)
 
+        if self.on_progress:
+            self.on_progress(step/steps)
+            step += 1
+
         # down
         for down_block in self.down_blocks:
             sample = down_block(sample)
+            if self.on_progress:
+                self.on_progress(step/steps)
+                step += 1
 
         if self.downsample_on_cpu:
             sample = sample.to(dtype).to(device)
@@ -181,10 +197,18 @@ class Encoder(nn.Module):
         # middle
         sample = self.mid_block(sample)
 
+        if self.on_progress:
+            self.on_progress(step/steps)
+            step += 1
+
         # post-process
         sample = self.conv_norm_out(sample)
         sample = self.conv_act(sample)
         sample = self.conv_out(sample)
+
+        if self.on_progress:
+            self.on_progress(step/steps)
+            step += 1
 
         return sample
 
@@ -255,6 +279,8 @@ class Decoder(nn.Module):
         self._original_device = self.conv_in.weight.device
         self._original_dtype = self.conv_in.weight.dtype
 
+        self.on_progress = None
+
     def set_use_memory_efficient_attention_xformers(self, use_memory_efficient_attention_xformers:bool):
         self.mid_block.set_use_memory_efficient_attention_xformers(use_memory_efficient_attention_xformers)
         if not self.upsample_on_cpu:
@@ -293,10 +319,25 @@ class Decoder(nn.Module):
     def forward(self, sample):
         dtype = sample.dtype
         device = sample.device
+        step = 0
+        steps = 3 + len(self.up_blocks)
+
+        if self.on_progress:
+            self.on_progress(step/steps)
+            step += 1
+
         sample = self.conv_in(sample)
+
+        if self.on_progress:
+            self.on_progress(step/steps)
+            step += 1
 
         # middle
         sample = self.mid_block(sample)
+
+        if self.on_progress:
+            self.on_progress(step/steps)
+            step += 1
 
         if self.upsample_on_cpu:
             sample = sample.to('cpu').to(torch.float)
@@ -304,11 +345,18 @@ class Decoder(nn.Module):
         # up
         for up_block in self.up_blocks:
             sample = up_block(sample)
+            if self.on_progress:
+                self.on_progress(step/steps)
+                step += 1
 
         # post-process
         sample = self.conv_norm_out(sample)
         sample = self.conv_act(sample)
         sample = self.conv_out(sample)
+
+        if self.on_progress:
+            self.on_progress(step/steps)
+            step += 1
 
         if self.upsample_on_cpu:
             sample = sample.to(dtype).to(device)
