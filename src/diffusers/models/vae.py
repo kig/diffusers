@@ -141,6 +141,9 @@ class Encoder(nn.Module):
 
 
     def enable_downsample_on_cpu(self):
+        if self.downsample_on_cpu:
+            return
+
         self.downsample_on_cpu = True
 
         self._original_device = self.conv_in.weight.device
@@ -154,6 +157,9 @@ class Encoder(nn.Module):
                 block.set_use_memory_efficient_attention_xformers(False)
 
     def disable_downsample_on_cpu(self):
+        if not self.downsample_on_cpu:
+            return
+
         self.downsample_on_cpu = False
 
         self.conv_in = self.conv_in.to(self._original_device).to(self._original_dtype)
@@ -289,6 +295,9 @@ class Decoder(nn.Module):
                     block.set_use_memory_efficient_attention_xformers(use_memory_efficient_attention_xformers)
 
     def enable_upsample_on_cpu(self):
+        if self.upsample_on_cpu:
+            return
+
         self.upsample_on_cpu = True
 
         self._original_device = self.conv_in.weight.device
@@ -304,6 +313,9 @@ class Decoder(nn.Module):
                 block.set_use_memory_efficient_attention_xformers(False)
 
     def disable_upsample_on_cpu(self):
+        if not self.upsample_on_cpu:
+            return
+
         self.upsample_on_cpu = False
 
         self.up_blocks = self.up_blocks.to(self._original_device).to(self._original_dtype)
