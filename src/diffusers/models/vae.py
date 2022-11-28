@@ -720,7 +720,7 @@ class AutoencoderKL(ModelMixin, ConfigMixin):
 
         self.use_tiling = False
         self.use_slicing = True
-        self.set_use_cpu_convolution = False
+        self.use_cpu_convolution = False
 
     def set_use_cpu_convolution(self, use_cpu_convolution: bool = True):
         r"""Set whether or not to run the convolution on the CPU to save GPU memory.
@@ -740,7 +740,7 @@ class AutoencoderKL(ModelMixin, ConfigMixin):
         Args:
             use_cpu_convolution (`bool`, *optional*, defaults to `True`): Whether or not to use CPU convolution.
         """
-        self.set_use_cpu_convolution = use_cpu_convolution
+        self.use_cpu_convolution = use_cpu_convolution
 
     def enable_slicing(self):
         r"""
