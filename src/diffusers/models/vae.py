@@ -127,18 +127,17 @@ class Encoder(nn.Module):
 
         self.downsample_on_cpu = False
 
-        self._original_device = 'cuda'
+        self._original_device = "cuda"
         self._original_dtype = torch.float16
 
         self.on_progress = None
 
-    def set_use_memory_efficient_attention_xformers(self, use_memory_efficient_attention_xformers:bool):
+    def set_use_memory_efficient_attention_xformers(self, use_memory_efficient_attention_xformers: bool):
         self.mid_block.set_use_memory_efficient_attention_xformers(use_memory_efficient_attention_xformers)
         if not self.downsample_on_cpu:
             for block in self.down_blocks:
                 if hasattr(block, "attentions") and block.attentions is not None:
                     block.set_use_memory_efficient_attention_xformers(use_memory_efficient_attention_xformers)
-
 
     def enable_downsample_on_cpu(self):
         if self.downsample_on_cpu:
@@ -149,8 +148,8 @@ class Encoder(nn.Module):
         self._original_device = self.conv_in.weight.device
         self._original_dtype = self.conv_in.weight.dtype
 
-        self.conv_in = self.conv_in.to('cpu').to(torch.float)
-        self.down_blocks = self.down_blocks.to('cpu').to(torch.float)
+        self.conv_in = self.conv_in.to("cpu").to(torch.float)
+        self.down_blocks = self.down_blocks.to("cpu").to(torch.float)
 
         for block in self.down_blocks:
             if hasattr(block, "attentions") and block.attentions is not None:
@@ -168,7 +167,9 @@ class Encoder(nn.Module):
         if len(self.mid_block.attentions) > 0:
             for block in self.down_blocks:
                 if hasattr(block, "attentions") and block.attentions is not None:
-                    block.set_use_memory_efficient_attention_xformers(self.mid_block.attentions[0]._use_memory_efficient_attention_xformers)
+                    block.set_use_memory_efficient_attention_xformers(
+                        self.mid_block.attentions[0]._use_memory_efficient_attention_xformers
+                    )
 
     def forward(self, sample):
         dtype = sample.dtype
@@ -178,23 +179,23 @@ class Encoder(nn.Module):
         steps = 3 + len(self.down_blocks)
 
         if self.on_progress:
-            self.on_progress(step/steps)
+            self.on_progress(step / steps)
             step += 1
 
         if self.downsample_on_cpu:
-            sample = sample.to('cpu').to(torch.float)
+            sample = sample.to("cpu").to(torch.float)
 
         sample = self.conv_in(sample)
 
         if self.on_progress:
-            self.on_progress(step/steps)
+            self.on_progress(step / steps)
             step += 1
 
         # down
         for down_block in self.down_blocks:
             sample = down_block(sample)
             if self.on_progress:
-                self.on_progress(step/steps)
+                self.on_progress(step / steps)
                 step += 1
 
         if self.downsample_on_cpu:
@@ -204,7 +205,7 @@ class Encoder(nn.Module):
         sample = self.mid_block(sample)
 
         if self.on_progress:
-            self.on_progress(step/steps)
+            self.on_progress(step / steps)
             step += 1
 
         # post-process
@@ -213,7 +214,7 @@ class Encoder(nn.Module):
         sample = self.conv_out(sample)
 
         if self.on_progress:
-            self.on_progress(step/steps)
+            self.on_progress(step / steps)
             step += 1
 
         return sample
@@ -282,12 +283,12 @@ class Decoder(nn.Module):
 
         self.upsample_on_cpu = False
 
-        self._original_device = 'cuda'
+        self._original_device = "cuda"
         self._original_dtype = torch.float16
 
         self.on_progress = None
 
-    def set_use_memory_efficient_attention_xformers(self, use_memory_efficient_attention_xformers:bool):
+    def set_use_memory_efficient_attention_xformers(self, use_memory_efficient_attention_xformers: bool):
         self.mid_block.set_use_memory_efficient_attention_xformers(use_memory_efficient_attention_xformers)
         if not self.upsample_on_cpu:
             for block in self.up_blocks:
@@ -300,10 +301,10 @@ class Decoder(nn.Module):
 
         self.upsample_on_cpu = True
 
-        self.up_blocks = self.up_blocks.to('cpu').to(torch.float)
-        self.conv_norm_out = self.conv_norm_out.to('cpu').to(torch.float)
-        self.conv_act = self.conv_act.to('cpu').to(torch.float)
-        self.conv_out = self.conv_out.to('cpu').to(torch.float)
+        self.up_blocks = self.up_blocks.to("cpu").to(torch.float)
+        self.conv_norm_out = self.conv_norm_out.to("cpu").to(torch.float)
+        self.conv_act = self.conv_act.to("cpu").to(torch.float)
+        self.conv_out = self.conv_out.to("cpu").to(torch.float)
 
         for block in self.up_blocks:
             if hasattr(block, "attentions") and block.attentions is not None:
@@ -323,7 +324,9 @@ class Decoder(nn.Module):
         if len(self.mid_block.attentions) > 0:
             for block in self.up_blocks:
                 if hasattr(block, "attentions") and block.attentions is not None:
-                    block.set_use_memory_efficient_attention_xformers(self.mid_block.attentions[0]._use_memory_efficient_attention_xformers)
+                    block.set_use_memory_efficient_attention_xformers(
+                        self.mid_block.attentions[0]._use_memory_efficient_attention_xformers
+                    )
 
     def forward(self, sample):
         dtype = sample.dtype
@@ -332,30 +335,30 @@ class Decoder(nn.Module):
         steps = 3 + len(self.up_blocks)
 
         if self.on_progress:
-            self.on_progress(step/steps)
+            self.on_progress(step / steps)
             step += 1
 
         sample = self.conv_in(sample)
 
         if self.on_progress:
-            self.on_progress(step/steps)
+            self.on_progress(step / steps)
             step += 1
 
         # middle
         sample = self.mid_block(sample)
 
         if self.on_progress:
-            self.on_progress(step/steps)
+            self.on_progress(step / steps)
             step += 1
 
         if self.upsample_on_cpu:
-            sample = sample.to('cpu').to(torch.float)
+            sample = sample.to("cpu").to(torch.float)
 
         # up
         for up_block in self.up_blocks:
             sample = up_block(sample)
             if self.on_progress:
-                self.on_progress(step/steps)
+                self.on_progress(step / steps)
                 step += 1
 
         # post-process
@@ -364,7 +367,7 @@ class Decoder(nn.Module):
         sample = self.conv_out(sample)
 
         if self.on_progress:
-            self.on_progress(step/steps)
+            self.on_progress(step / steps)
             step += 1
 
         if self.upsample_on_cpu:
@@ -716,10 +719,44 @@ class AutoencoderKL(ModelMixin, ConfigMixin):
         self.post_quant_conv = torch.nn.Conv2d(latent_channels, latent_channels, 1)
 
         self.use_tiling = False
+        self.use_slicing = True
+        self.set_use_cpu_convolution = False
 
-    def set_use_memory_efficient_attention_xformers(self, use_memory_efficient_attention_xformers: bool):
-        self.decoder.set_use_memory_efficient_attention_xformers(use_memory_efficient_attention_xformers)
-        self.encoder.set_use_memory_efficient_attention_xformers(use_memory_efficient_attention_xformers)
+    def set_use_cpu_convolution(self, use_cpu_convolution: bool = True):
+        r"""Set whether or not to run the convolution on the CPU to save GPU memory.
+
+        If you are running out of GPU memory when working with large images, and don't want to use tiling, you can use
+        this combined with xformers memory-efficient attention and channels_last memory format.
+
+        The xformers attention will reduce the memory footprint of the VAE mid-block running on the GPU, and this will
+        reduce the memory footprint of the convolutions used to upsample and downsample images. With these, your CPU
+        memory use should peak at around 50 GB on 8k images.
+
+        If you forget to set the memory format to channels_last, or run the entire VAE on the CPU, you will likely have
+        memory usage north of 120 GB for a 3840x2160 image.
+
+        Note that this makes the speed of the VAE heavily depend on your CPU speed.
+
+        Args:
+            use_cpu_convolution (`bool`, *optional*, defaults to `True`): Whether or not to use CPU convolution.
+        """
+        self.set_use_cpu_convolution = use_cpu_convolution
+
+    def enable_slicing(self):
+        r"""
+        Enable sliced VAE decoding.
+
+        When this option is enabled, the VAE will split the input tensor in slices to compute decoding in several
+        steps. This is useful to save some memory and allow larger batch sizes.
+        """
+        self.use_slicing = True
+
+    def disable_slicing(self):
+        r"""
+        Disable sliced VAE decoding. If `enable_slicing` was previously invoked, this method will go back to computing
+        decoding in one step.
+        """
+        self.use_slicing = False
 
     def enable_tiling(self, use_tiling: bool = True):
         self.use_tiling = use_tiling
@@ -727,9 +764,18 @@ class AutoencoderKL(ModelMixin, ConfigMixin):
     def disable_tiling(self):
         self.enable_tiling(False)
 
+    def set_use_memory_efficient_attention_xformers(self, use_memory_efficient_attention_xformers: bool):
+        self.decoder.set_use_memory_efficient_attention_xformers(use_memory_efficient_attention_xformers)
+        self.encoder.set_use_memory_efficient_attention_xformers(use_memory_efficient_attention_xformers)
+
     def encode(self, x: torch.FloatTensor, return_dict: bool = True) -> AutoencoderKLOutput:
-        if self.use_tiling:
+        if self.use_tiling and (x.shape[2] > 512 or x.shape[3] > 512):
             return self.tiled_encode(x, return_dict=return_dict)
+
+        if self.use_cpu_convolution:
+            self.encoder.enable_downsample_on_cpu()
+        else:
+            self.encoder.disable_downsample_on_cpu()
 
         h = self.encoder(x)
         moments = self.quant_conv(h)
@@ -741,8 +787,25 @@ class AutoencoderKL(ModelMixin, ConfigMixin):
         return AutoencoderKLOutput(latent_dist=posterior)
 
     def decode(self, z: torch.FloatTensor, return_dict: bool = True) -> Union[DecoderOutput, torch.FloatTensor]:
-        if self.use_tiling:
+        if self.use_slicing:
+            decoded_slices = [self._decode(z_slice).sample for z_slice in z.split(1)]
+            decoded = torch.cat(decoded_slices)
+        else:
+            decoded = self._decode(z).sample
+
+        if not return_dict:
+            return (decoded,)
+
+        return DecoderOutput(sample=decoded)
+
+    def _decode(self, z: torch.FloatTensor, return_dict: bool = True) -> Union[DecoderOutput, torch.FloatTensor]:
+        if self.use_tiling and (z.shape[2] > 64 or z.shape[3] > 64):
             return self.tiled_decode(z, return_dict=return_dict)
+
+        if self.use_cpu_convolution:
+            self.decoder.enable_upsample_on_cpu()
+        else:
+            self.decoder.disable_upsample_on_cpu()
 
         z = self.post_quant_conv(z)
         dec = self.decoder(z)
@@ -754,20 +817,20 @@ class AutoencoderKL(ModelMixin, ConfigMixin):
 
     def blend_v(self, a, b, blend_width):
         for y in range(blend_width):
-            b[:, :, y, :] = a[:, :, -blend_width+y, :] * (1 - y / blend_width) + b[:, :, y, :] * (y / blend_width)
+            b[:, :, y, :] = a[:, :, -blend_width + y, :] * (1 - y / blend_width) + b[:, :, y, :] * (y / blend_width)
         return b
 
     def blend_h(self, a, b, blend_width):
         for x in range(blend_width):
-            b[:, :, :, x] = a[:, :, :, -blend_width+x] * (1 - x / blend_width) + b[:, :, :, x] * (x / blend_width)
+            b[:, :, :, x] = a[:, :, :, -blend_width + x] * (1 - x / blend_width) + b[:, :, :, x] * (x / blend_width)
         return b
 
     def tiled_encode(self, x: torch.FloatTensor, return_dict: bool = True) -> AutoencoderKLOutput:
-        r"""Encode a batch of images using a tiled encoder. 
+        r"""Encode a batch of images using a tiled encoder.
 
-        The end result of tiled encoding is different from non-tiled encoding due to each tile using a different encoder. 
-        To avoid tiling artifacts, the tiles overlap and are blended together to form a smooth output.
-        You may still see tile-sized changes in the look of the output, but they should be much less noticeable.
+        The end result of tiled encoding is different from non-tiled encoding due to each tile using a different
+        encoder. To avoid tiling artifacts, the tiles overlap and are blended together to form a smooth output. You may
+        still see tile-sized changes in the look of the output, but they should be much less noticeable.
 
         Args:
             x (`torch.FloatTensor`): Input batch of images.
@@ -779,21 +842,21 @@ class AutoencoderKL(ModelMixin, ConfigMixin):
         for i in range(0, x.shape[2], 384):
             row = []
             for j in range(0, x.shape[3], 384):
-                tile = x[:, :, i:i+512, j:j+512]
+                tile = x[:, :, i : i + 512, j : j + 512]
                 tile = self.encoder(tile)
                 tile = self.quant_conv(tile)
                 row.append(tile)
             rows.append(row)
         result_rows = []
-        for i,row in enumerate(rows):
+        for i, row in enumerate(rows):
             result_row = []
-            for j,tile in enumerate(row):
+            for j, tile in enumerate(row):
                 # blend the above tile and the left tile
                 # to the current tile and add the current tile to the result row
                 if i > 0:
-                    tile = self.blend_v(rows[i-1][j], tile, 16)
+                    tile = self.blend_v(rows[i - 1][j], tile, 16)
                 if j > 0:
-                    tile = self.blend_h(row[j-1], tile, 16)
+                    tile = self.blend_h(row[j - 1], tile, 16)
                 result_row.append(tile[:, :, :48, :48])
             result_rows.append(torch.cat(result_row, dim=3))
 
@@ -808,9 +871,9 @@ class AutoencoderKL(ModelMixin, ConfigMixin):
     def tiled_decode(self, z: torch.FloatTensor, return_dict: bool = True) -> Union[DecoderOutput, torch.FloatTensor]:
         r"""Decode a batch of images using a tiled decoder.
 
-        The end result of tiled decoding is different from non-tiled decoding due to each tile using a different decoder. 
-        To avoid tiling artifacts, the tiles overlap and are blended together to form a smooth output.
-        You may still see tile-sized changes in the look of the output, but they should be much less noticeable.
+        The end result of tiled decoding is different from non-tiled decoding due to each tile using a different
+        decoder. To avoid tiling artifacts, the tiles overlap and are blended together to form a smooth output. You may
+        still see tile-sized changes in the look of the output, but they should be much less noticeable.
 
         Args:
             z (`torch.FloatTensor`): Input batch of latent vectors.
@@ -823,21 +886,21 @@ class AutoencoderKL(ModelMixin, ConfigMixin):
         for i in range(0, z.shape[2], 48):
             row = []
             for j in range(0, z.shape[3], 48):
-                tile = z[:, :, i:i+64, j:j+64]
+                tile = z[:, :, i : i + 64, j : j + 64]
                 tile = self.post_quant_conv(tile)
                 decoded = self.decoder(tile)
                 row.append(decoded)
             rows.append(row)
         result_rows = []
-        for i,row in enumerate(rows):
+        for i, row in enumerate(rows):
             result_row = []
-            for j,tile in enumerate(row):
+            for j, tile in enumerate(row):
                 # blend the above tile and the left tile
                 # to the current tile and add the current tile to the result row
                 if i > 0:
-                    tile = self.blend_v(rows[i-1][j], tile, 128)
+                    tile = self.blend_v(rows[i - 1][j], tile, 128)
                 if j > 0:
-                    tile = self.blend_h(row[j-1], tile, 128)
+                    tile = self.blend_h(row[j - 1], tile, 128)
                 result_row.append(tile[:, :, :384, :384])
             result_rows.append(torch.cat(result_row, dim=3))
 
