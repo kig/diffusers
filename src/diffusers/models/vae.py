@@ -718,8 +718,8 @@ class AutoencoderKL(ModelMixin, ConfigMixin):
         self.quant_conv = torch.nn.Conv2d(2 * latent_channels, 2 * latent_channels, 1)
         self.post_quant_conv = torch.nn.Conv2d(latent_channels, latent_channels, 1)
 
+        self.use_slicing = False
         self.use_tiling = False
-        self.use_slicing = True
         self.use_cpu_convolution = False
 
     def set_use_cpu_convolution(self, use_cpu_convolution: bool = True):
